@@ -1,0 +1,46 @@
+{
+  "name": "qik_url",
+  "version": "0.1.0",
+  "description": "Qik Url - Fast URL shortener API with analytics, expiry, single-use, deletion tokens, Redis cache, Firestore storage.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "NODE_ENV=production node src/server.js",
+    "lint": "eslint .",
+  "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand --detectOpenHandles",
+  "test:watch": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --watch",
+  "test:cov": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --coverage"
+  },
+  "keywords": [
+    "url",
+    "shortener",
+    "redis",
+    "firestore",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "compression": "^1.8.1",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "helmet": "^8.1.0",
+    "redis": "^5.8.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "supertest": "^7.1.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/test"],
+    "moduleFileExtensions": ["js", "mjs"],
+    "verbose": true,
+  "transform": {},
+    "setupFiles": ["<rootDir>/test/setupEnv.js"],
+    "setupFilesAfterEnv": ["<rootDir>/test/setupJest.js"]
+  }
+}

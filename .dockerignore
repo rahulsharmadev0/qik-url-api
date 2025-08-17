@@ -1,0 +1,16 @@
+# Docker ignore patterns
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.*.local
+.git
+.gitignore
+README.md
+.nyc_output
+coverage
+.npmrc
+Dockerfile
+docker-compose*.yml
+.docker*
+*.md
