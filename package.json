@@ -1,7 +1,7 @@
 {
-  "name": "qik_url",
+  "name": "qik-url-api",
   "version": "0.1.0",
-  "description": "Qik Url - Fast URL shortener API with analytics, expiry, single-use, deletion tokens, Redis cache, Firestore storage.",
+  "description": "Qik Url API - Fast URL shortener with analytics, expiry, single-use links, deletion tokens, Redis cache, Firestore storage.",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
