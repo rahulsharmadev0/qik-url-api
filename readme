@@ -21,7 +21,7 @@ Qik Url is a lightweight, high-performance **Open API** for shortening long link
 * **Framework:** Node.js + Express
 * **Database:** Firebase Firestore (permanent storage)
 * **Cache:** Redis (fast lookups & rate limiting)
-
+œ
 ---
 
 ## 📡 API Endpoints

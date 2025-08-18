@@ -1,13 +1,14 @@
 import express from 'express';
 import compression from 'compression';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
-import { initFirebase } from './config/firebase.js';
-import { initRedis } from './config/redis.js';
+import { loadEnvConfig, getEnvInfo } from './config/env.js';
+import { firebaseService } from './config/firebase.js';
+import { redisService } from './config/redis.js';
 import qikUrlRoutes from './routes.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
-dotenv.config();
+// Load environment configuration first
+loadEnvConfig();
 
 export const app = express();
 
@@ -37,13 +38,18 @@ const PORT = process.env.PORT || 3000;
 export async function start() {
   try {
   console.log('🚀 Starting Qik URL API...');    
-    await initFirebase();
-    await initRedis();
+    await firebaseService.init();
+    await redisService.init();
+    
+    // Get environment info
+    const envInfo = getEnvInfo();
     
     // Start server
     const server = app.listen(PORT, () => {
       console.log(`✅ Qik Url API listening on :${PORT}`);
-      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🌍 Environment: ${envInfo.environment}`);
+      console.log(`🔥 Firebase Project: ${envInfo.firebaseProject}`);
+      console.log(`📦 Redis Host: ${envInfo.redisHost}`);
     });
 
     // Graceful shutdown

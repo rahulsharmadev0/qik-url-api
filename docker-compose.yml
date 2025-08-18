@@ -23,12 +23,3 @@ services:
       - 8200:8200
 volumes:
     redis_data:
-
-  # app:
-  #   image: your-app-image
-  #   environment:
-  #     - FIRESTORE_EMULATOR_HOST=firestore_emulator:8200
-  #     - FIRESTORE_PROJECT_ID=qik_url_firestore_emulator
-  # depends_on:
-  #   - firestore_emulator
-

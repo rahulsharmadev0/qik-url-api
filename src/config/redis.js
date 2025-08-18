@@ -1,64 +1,80 @@
 import { createClient } from 'redis';
 
-let _redisClient;
+class RedisService {
+  constructor() {
+    this._client = null;
+    this._initialized = false;
+  }
 
-export async function initRedis() {
+  async init() {
     try {
-        // Create Redis client
-        _redisClient = createClient({
-            url: process.env.REDIS_URL || 'redis://localhost:6379',
-            password: process.env.REDIS_PASSWORD || '1234', // From docker-compose.yml
-            socket: {
-                reconnectDelay: 100,
-                connectTimeout: 60000,
-            },
-        }).on('error', (err) => {
-            console.error('❌ Redis Client Error:', err);
-        }).on('connect', () => {
-            console.log('✅ Redis connected');
-        }).on('end', () => {
-            console.log('🔴 Redis disconnected');
-        });
+      const config = {
+        url: process.env.REDIS_HOST,
+        password: process.env.REDIS_PASSWORD,
+        username: process.env.REDIS_USERNAME,
+        socket: { reconnectDelay: 100, connectTimeout: 60000 }
+      };
 
-        // Connect to Redis
-        await _redisClient.connect();
+      this._client = createClient(config)
+        .on('error', err => console.error('❌ Redis Error:', err))
+        .on('connect', () => console.log('✅ Redis connected'))
+        .on('reconnecting', () => console.log('🔄 Redis reconnecting...'))
+        .on('end', () => console.log('🔴 Redis disconnected'));
 
-        // Test the connection
-        await _redisClient.ping();
-        console.log('🚀 Redis initialized successfully');
-
+      await this._client.connect();
+      await this._client.ping();
+      this._initialized = true;
+      console.log('🚀 Redis initialized');
     } catch (error) {
-        console.error('❌ Failed to initialize Redis:', error);
-        throw error;
+      console.error('❌ Redis initialization failed:', error);
+      throw error;
     }
-}
+  }
 
-export const redis = () => {
-    if (!_redisClient) throw new Error('Redis client not initialized. Call initRedis() first.');
-
-    return _redisClient;
-}
-
-export async function closeRedis() {
-    if (_redisClient && _redisClient.isOpen) {
-        try {
-            await _redisClient.quit();
-            console.log('🔴 Redis connection closed');
-        } catch (error) {
-            console.log('Redis already closed or error during shutdown:', error.message);
-        }
+  get instance() {
+    if (!this._initialized || !this._client) {
+      throw new Error('Redis not initialized. Call RedisService.init() first.');
     }
+    return this._client;
+  }
+
+  async close() {
+    if (this._client?.isOpen) {
+      try {
+        await this._client.quit();
+        this._initialized = false;
+        this._client = null;
+        console.log('🔴 Redis closed');
+      } catch (error) {
+        console.warn('Redis shutdown warning:', error.message);
+      }
+    }
+  }
 }
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('\n🛑 Shutting down gracefully...');
-    await closeRedis();
-    process.exit(0);
+// Create singleton instance
+const redisService = new RedisService();
+
+// Export the service instance and legacy functions for compatibility
+export { redisService };
+
+// Create a getter function that returns the instance
+export function getRedisInstance() {
+  return redisService.instance;
+}
+
+// For backward compatibility - this will work once redis is initialized
+export const redis = new Proxy({}, {
+  get(target, prop) {
+    return redisService.instance[prop];
+  }
 });
 
+export const initRedis = () => redisService.init();
+export const closeRedis = () => redisService.close();
+
 process.on('SIGTERM', async () => {
-    console.log('\n🛑 Shutting down gracefully...');
-    await closeRedis();
-    process.exit(0);
+  console.log('\n🛑 Shutting down gracefully...');
+  await redisService.close();
+  process.exit(0);
 });

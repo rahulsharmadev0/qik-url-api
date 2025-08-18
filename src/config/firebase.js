@@ -1,43 +1,75 @@
 import admin from 'firebase-admin';
+import { readFileSync } from 'fs';
 
-let _fs;
+class FirebaseService {
+  constructor() {
+    this._fs = null;
+    this._initialized = false;
+  }
 
-export async function initFirebase() {
-  try {
-    // Initialize Firebase Admin SDK
-    if (!admin.apps.length) {
-      // For development with emulator, we don't need credentials
+  async init() {
+    try {
+      if (admin.apps.length) return; // Already initialized
+
       if (process.env.FIRESTORE_EMULATOR_HOST) {
+        // Development with emulator
         admin.initializeApp({
-          projectId: process.env.FIREBASE_PROJECT_ID || 'qik-url-firestore-emulator'
+          projectId: process.env.FIREBASE_PROJECT_ID,
         });
-        console.log('🔥 Firebase connected to emulator');
+        console.log(`🔥 Firebase connected to ${process.env.FIREBASE_PROJECT_ID}`);
       } else {
-        // Production setup would require service account key
-        throw new Error('Production Firebase setup not configured. Please set up service account credentials.');
+        // Production setup
+        await this._initProductionFirebase();
       }
+
+      this._fs = admin.firestore();
+
+      // Test connection
+      await this._fs.collection('_health').doc('test').set({
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'connected'
+      });
+
+      this._initialized = true;
+      console.log('🚀 Firestore initialized');
+    } catch (error) {
+      console.error('❌ Firebase initialization failed:', error);
+      throw error;
     }
+  }
 
-    _fs = admin.firestore();
-    
-    // Test the connection
-    await _fs.collection('_health').doc('test').set({
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'connected'
-    });
-    
-    console.log('🚀 Firestore initialized successfully');
-  } catch (error) {
-    console.error('❌ Failed to initialize Firebase:', error);
-    throw error;
+  async _initProductionFirebase() {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH) {
+      const serviceAccount = JSON.parse(readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH, 'utf8'));
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: process.env.FIREBASE_PROJECT_ID
+      });
+      console.log('🔑 Firebase service account loaded');
+    } else {
+      // Use Application Default Credentials (for cloud deployments)
+      admin.initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID });
+      console.log('🏗️ Using Firebase ADC');
+    }
+  }
+
+  get instance() {
+    if (!this._initialized || !this._fs) {
+      throw new Error('Firebase not initialized. Call FirebaseService.init() first.');
+    }
+    return this._fs;
+  }
+
+  get admin() {
+    return admin;
   }
 }
 
-export  const firestore = () =>{
-  if (!_fs) {
-    throw new Error('Firestore not initialized. Call initFirebase() first.');
-  }
-  return _fs;
-}
+// Create singleton instance
+const firebaseService = new FirebaseService();
 
+// Export the service instance and legacy functions for compatibility
+export { firebaseService };
+export const firestore = () => firebaseService.instance;
+export const initFirebase = () => firebaseService.init();
 export { admin };

@@ -1,5 +1,5 @@
 import express from 'express';
-import { createQikUrl, deleteQikUrl, getQikUrl as redirectToLongUrl, getHealth } from './controller.js';
+import { createQikUrl, deleteQikUrl, redirectToLongUrl, getHealth } from './controller.js';
 import { 
     validateCreateRequest, 
     validateQikCode, 
