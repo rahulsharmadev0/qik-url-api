@@ -15,13 +15,12 @@ export const app = express();
 // Initialize services for serverless environment
 let servicesInitialized = false;
 async function initializeServices() {
-  if (!servicesInitialized && process.env.NODE_ENV === 'production') {
-    console.log('🚀 Initializing services for serverless environment...');
-    await FirebaseService.initialize();
-    await RedisService.initialize();
-    servicesInitialized = true;
-    console.log('✅ Services initialized for serverless environment');
-  }
+  if (servicesInitialized) return;
+  console.log('🚀 Initializing backing services...');
+  await FirebaseService.initialize();
+  await RedisService.initialize();
+  servicesInitialized = true;
+  console.log('✅ Backing services ready');
 }
 
 // Middleware to ensure services are initialized for each request in serverless
@@ -94,8 +93,12 @@ export async function start() {
 }
 
 // Only auto-start if not under test environment
-if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+// For traditional (non-serverless) runtime only
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
   start();
+} else if (process.env.VERCEL) {
+  // Kick off async initialization (don't block cold start response path too long)
+  initializeServices().catch(err => console.error('Init error (serverless):', err));
 }
 
 
