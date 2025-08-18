@@ -71,3 +71,7 @@ firebase-adminsdk-*.json
 
 # dataconnect generated files
 .dataconnect
+
+VERCEL_DEPLOYMENT.md
+
+

@@ -1,9 +1,25 @@
 import { createClient } from 'redis';
 
 class RedisService {
+  static _instance = null;
+
+  static async initialize() {
+    if (!RedisService._instance) {
+      RedisService._instance = new RedisService();
+      await RedisService._instance.init();
+    }
+    return RedisService._instance;
+  }
+
+  static get client() { return RedisService._instance.client };
+
+  #client;
   constructor() {
-    this._client = null;
-    this._initialized = false;
+    this.#client = null;
+  }
+  get client() {
+    if (!this.#client) throw new Error('Redis client not initialized.');
+    return this.#client;
   }
 
   async init() {
@@ -15,35 +31,26 @@ class RedisService {
         socket: { reconnectDelay: 100, connectTimeout: 60000 }
       };
 
-      this._client = createClient(config)
+      this.#client = createClient(config)
         .on('error', err => console.error('❌ Redis Error:', err))
         .on('connect', () => console.log('✅ Redis connected'))
         .on('reconnecting', () => console.log('🔄 Redis reconnecting...'))
         .on('end', () => console.log('🔴 Redis disconnected'));
 
-      await this._client.connect();
-      await this._client.ping();
-      this._initialized = true;
+      await this.#client.connect();
+      await this.#client.ping();
       console.log('🚀 Redis initialized');
     } catch (error) {
       console.error('❌ Redis initialization failed:', error);
       throw error;
     }
   }
-
-  get instance() {
-    if (!this._initialized || !this._client) {
-      throw new Error('Redis not initialized. Call RedisService.init() first.');
-    }
-    return this._client;
-  }
-
   async close() {
-    if (this._client?.isOpen) {
+    if (this.#client?.isOpen) {
       try {
-        await this._client.quit();
+        await this.#client.quit();
         this._initialized = false;
-        this._client = null;
+        this.#client = null;
         console.log('🔴 Redis closed');
       } catch (error) {
         console.warn('Redis shutdown warning:', error.message);
@@ -52,29 +59,12 @@ class RedisService {
   }
 }
 
-// Create singleton instance
-const redisService = new RedisService();
 
 // Export the service instance and legacy functions for compatibility
-export { redisService };
-
-// Create a getter function that returns the instance
-export function getRedisInstance() {
-  return redisService.instance;
-}
-
-// For backward compatibility - this will work once redis is initialized
-export const redis = new Proxy({}, {
-  get(target, prop) {
-    return redisService.instance[prop];
-  }
-});
-
-export const initRedis = () => redisService.init();
-export const closeRedis = () => redisService.close();
+export { RedisService };
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down gracefully...');
-  await redisService.close();
+  await RedisService._instance.close();
   process.exit(0);
 });

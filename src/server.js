@@ -2,8 +2,8 @@ import express from 'express';
 import compression from 'compression';
 import helmet from 'helmet';
 import { loadEnvConfig, getEnvInfo } from './config/env.js';
-import { firebaseService } from './config/firebase.js';
-import { redisService } from './config/redis.js';
+import { FirebaseService } from './config/firebase.js';
+import { RedisService } from './config/redis.js';
 import qikUrlRoutes from './routes.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
@@ -11,6 +11,29 @@ import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 loadEnvConfig();
 
 export const app = express();
+
+// Initialize services for serverless environment
+let servicesInitialized = false;
+async function initializeServices() {
+  if (!servicesInitialized && process.env.NODE_ENV === 'production') {
+    console.log('🚀 Initializing services for serverless environment...');
+    await FirebaseService.initialize();
+    await RedisService.initialize();
+    servicesInitialized = true;
+    console.log('✅ Services initialized for serverless environment');
+  }
+}
+
+// Middleware to ensure services are initialized for each request in serverless
+app.use(async (req, res, next) => {
+  try {
+    await initializeServices();
+    next();
+  } catch (error) {
+    console.error('❌ Service initialization failed:', error);
+    res.status(503).json({ error: 'Service initialization failed' });
+  }
+});
 
 // Security middleware
 app.use(helmet());
@@ -38,8 +61,8 @@ const PORT = process.env.PORT || 3000;
 export async function start() {
   try {
   console.log('🚀 Starting Qik URL API...');    
-    await firebaseService.init();
-    await redisService.init();
+    await FirebaseService.initialize();
+    await RedisService.initialize();
     
     // Get environment info
     const envInfo = getEnvInfo();
