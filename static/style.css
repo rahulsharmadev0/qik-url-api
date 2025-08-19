@@ -231,6 +231,8 @@ label.field-label {
 /* Input Icons Container */
 .input-icons {
   position: absolute;
+  background: #101014;
+  
   top: 50%;
   right: 14px;
   transform: translateY(-50%);

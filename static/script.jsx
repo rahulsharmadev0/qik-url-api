@@ -425,7 +425,6 @@ function App() {
                         reset();
                       }}
                     />
-
                     <div className="input-icons">
                       <label
                         className="single-use-toggle tooltip"
@@ -440,7 +439,7 @@ function App() {
                           }}
                         />
                         <span className="single-use-track">
-                          <span className="single-use-thumb" />
+                        <span className="single-use-thumb" />
                         </span>
                       </label>
 
