@@ -21,12 +21,17 @@ export const createQikUrl = asyncHandler(async (req, res) => {
         created_at: new Date().toISOString()
     };
 
-    await FirebaseService.firestore.collection('qik_urls').doc(qik_code).set(docData);
+
+    const maxCacheDuration = 86400;
+    const expiryDuration = Math.floor((expiryDate - new Date()) / 1000);
 
     // If expiry is less than 1 day, use that; otherwise, default to 1 day
-    const ttlSeconds = Math.floor((expiryDate - new Date()) / 1000) <= 86400
-        ? Math.floor((expiryDate - new Date()) / 1000)
-        : 86400;
+    const ttlSeconds = expiryDuration > maxCacheDuration ? maxCacheDuration : expiryDuration;
+
+    // Only Store when expiry is more then maxCacheDuration
+    if (expiryDuration > maxCacheDuration) {
+        await FirebaseService.firestore.collection('qik_urls').doc(qik_code).set(docData);
+    }
 
     await RedisService.client.setEx(qik_code, ttlSeconds, JSON.stringify(docData));
 
